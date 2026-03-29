@@ -1,0 +1,43 @@
+{
+  "name": "mathem-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for interacting with Mathem.se grocery store",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mathem-cli": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "SKILL.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --exclude '**/integration*'",
+    "test:integration": "vitest run integration"
+  },
+  "keywords": [
+    "mathem",
+    "grocery",
+    "cli",
+    "sweden"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
