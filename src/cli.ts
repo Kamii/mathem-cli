@@ -2,7 +2,6 @@
 
 import 'dotenv/config';
 import { MathemApi, MathemApiError } from './mathem-api.js';
-import { installSkill } from './skill.js';
 import type { Cart, SearchItem } from './types.js';
 
 function usage(): void {
@@ -18,7 +17,7 @@ Commands:
 Options:
   -u, --username <email>    Mathem username/email
   -p, --password <pass>     Mathem password
-  --install-skills          Install Claude Code skill
+  --help-llm                Show LLM-friendly help (structured markdown)
   -h, --help                Show this help
 
 Environment variables:
@@ -26,6 +25,81 @@ Environment variables:
   MATHEM_PASSWORD            Password
 
 You can also use a .env file with the above variables.
+`);
+}
+
+function llmHelp(): void {
+  console.log(`# mathem-cli
+
+CLI and library for Mathem.se, a Swedish online grocery store.
+
+## Commands
+
+### search <query> [count]
+Search for products. No authentication required.
+- query: search term (e.g. "mjölk", "pasta", "kycklingfilé")
+- count: max results to return (default: 10)
+- Output: numbered list with product name, price, unit price, and product ID
+- Example: \`mathem-cli search "mjölk" 5\`
+
+### cart
+Show the current shopping cart. Requires authentication.
+- Output: item list with quantities, prices, and totals
+- Example: \`mathem-cli -u user@email.com -p pass cart\`
+
+### add <product-id> [qty]
+Add a product to the cart. Requires authentication.
+- product-id: numeric ID from search results
+- qty: quantity to add (default: 1)
+- Example: \`mathem-cli -u user@email.com -p pass add 2183 2\`
+
+### remove <product-id>
+Remove one unit of a product from the cart. Requires authentication.
+- product-id: numeric ID of the product to remove
+- Example: \`mathem-cli -u user@email.com -p pass remove 2183\`
+
+### clear
+Remove all items from the cart. Requires authentication.
+- Example: \`mathem-cli -u user@email.com -p pass clear\`
+
+## Authentication
+
+Credentials can be provided in three ways (checked in order):
+1. Flags: \`-u <email> -p <password>\`
+2. Environment variables: MATHEM_USERNAME, MATHEM_PASSWORD
+3. .env file with the above variables
+
+Search works without authentication. All cart operations require login.
+
+## Typical workflow
+
+1. Search for a product: \`mathem-cli search "mjölk"\`
+2. Note the product ID from the results (e.g. 2183)
+3. Add it to cart: \`mathem-cli add 2183\`
+4. Review the cart: \`mathem-cli cart\`
+5. Remove an item if needed: \`mathem-cli remove 2183\`
+6. Clear the entire cart: \`mathem-cli clear\`
+
+## Library usage (Node.js / TypeScript)
+
+\`\`\`typescript
+import { MathemApi } from 'mathem-cli';
+
+const api = new MathemApi();
+
+// Search (no auth)
+const results = await api.search('mjölk', 1, 10);
+// results.items[].attributes: { id, full_name, brand, gross_price, gross_unit_price, unit_price_quantity_abbreviation, availability, ... }
+
+// Login + cart operations
+await api.login('email', 'password');
+await api.addToCart([{ productId: 2183, quantity: 2 }]);
+const cart = await api.getCart();
+// cart: { product_quantity_count, display_price, total_gross_amount, items[].product, items[].quantity, ... }
+await api.removeFromCart(2183);
+await api.clearCart();
+await api.logout();
+\`\`\`
 `);
 }
 
@@ -95,9 +169,9 @@ function parseArgs(argv: string[]): ParsedArgs {
       case '--help':
         usage();
         process.exit(0);
-      case '--install-skills':
-        result.command = 'install-skills';
-        break;
+      case '--help-llm':
+        llmHelp();
+        process.exit(0);
       default:
         if (!result.command) {
           result.command = arg;
@@ -135,11 +209,6 @@ async function main(): Promise<void> {
   if (!parsed.command) {
     usage();
     process.exit(1);
-  }
-
-  if (parsed.command === 'install-skills') {
-    await installSkill();
-    return;
   }
 
   const api = new MathemApi();

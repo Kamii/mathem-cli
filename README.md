@@ -48,11 +48,13 @@ MATHEM_USERNAME=your@email.com
 MATHEM_PASSWORD=yourpassword
 ```
 
-### Claude Code Integration
+### LLM-friendly Help
 
 ```bash
-mathem-cli --install-skills
+mathem-cli --help-llm
 ```
+
+Outputs structured markdown describing all commands, authentication, and library API — suitable for piping into any LLM context.
 
 ## Library Usage
 

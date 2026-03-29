@@ -9,8 +9,7 @@
     "mathem-cli": "dist/cli.js"
   },
   "files": [
-    "dist",
-    "SKILL.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
