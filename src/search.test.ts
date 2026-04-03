@@ -29,9 +29,19 @@ const mockSearchResponse = {
         unit_price_quantity_name: 'liter',
         currency: 'SEK',
         discount: null,
-        promotion: { title: 'Prismatch', description_short: 'price_match', accessibility_text: '', display_style: 'price_match' },
+        promotion: {
+          title: 'Prismatch',
+          description_short: 'price_match',
+          accessibility_text: '',
+          display_style: 'price_match',
+        },
         promotions: [],
-        availability: { is_available: true, description: '', description_short: '', code: 'available' },
+        availability: {
+          is_available: true,
+          description: '',
+          description_short: '',
+          code: 'available',
+        },
         images: [],
         client_classifiers: [],
       },
@@ -57,7 +67,12 @@ const mockSearchResponse = {
         discount: null,
         promotion: null,
         promotions: [],
-        availability: { is_available: true, description: '', description_short: '', code: 'available' },
+        availability: {
+          is_available: true,
+          description: '',
+          description_short: '',
+          code: 'available',
+        },
         images: [],
         client_classifiers: [],
       },
@@ -67,28 +82,20 @@ const mockSearchResponse = {
   filters: [],
 };
 
-const mockInitResponse = new Response('{}', {
-  status: 200,
-  headers: { 'Set-Cookie': 'csrftoken=testtoken123; Path=/' },
-});
-
 describe('MathemApi.search', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it('should parse search results correctly', async () => {
-    let callCount = 0;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : url.toString();
       if (urlStr.includes('type=suggestion')) {
-        callCount++;
         return new Response('{}', {
           status: 200,
           headers: new Headers([['Set-Cookie', 'csrftoken=testtoken123; Path=/']]),
         });
       }
-      callCount++;
       return new Response(JSON.stringify(mockSearchResponse), {
         status: 200,
         headers: new Headers([['Set-Cookie', 'csrftoken=testtoken123; Path=/']]),
@@ -145,13 +152,10 @@ describe('MathemApi.login', () => {
         });
       }
       loginBody = options?.body as string;
-      return new Response(
-        JSON.stringify({ is_authenticated: true, sessionid: 'sess123' }),
-        {
-          status: 200,
-          headers: new Headers([['Set-Cookie', 'sessionid=sess123; Path=/']]),
-        },
-      );
+      return new Response(JSON.stringify({ is_authenticated: true, sessionid: 'sess123' }), {
+        status: 200,
+        headers: new Headers([['Set-Cookie', 'sessionid=sess123; Path=/']]),
+      });
     });
 
     const api = new MathemApi();
@@ -183,10 +187,10 @@ describe('MathemApi.cart', () => {
         });
       }
       if (options?.body) requestBody = options.body as string;
-      return new Response(
-        JSON.stringify({ product_quantity_count: 2, display_price: '35.00' }),
-        { status: 200, headers: new Headers() },
-      );
+      return new Response(JSON.stringify({ product_quantity_count: 2, display_price: '35.00' }), {
+        status: 200,
+        headers: new Headers(),
+      });
     });
 
     const api = new MathemApi();
@@ -215,10 +219,10 @@ describe('MathemApi.cart', () => {
         });
       }
       if (options?.body) requestBody = options.body as string;
-      return new Response(
-        JSON.stringify({ product_quantity_count: 0, display_price: '0.00' }),
-        { status: 200, headers: new Headers() },
-      );
+      return new Response(JSON.stringify({ product_quantity_count: 0, display_price: '0.00' }), {
+        status: 200,
+        headers: new Headers(),
+      });
     });
 
     const api = new MathemApi();

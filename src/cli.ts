@@ -169,9 +169,11 @@ function parseArgs(argv: string[]): ParsedArgs {
       case '--help':
         usage();
         process.exit(0);
+      // eslint-disable-next-line no-fallthrough
       case '--help-llm':
         llmHelp();
         process.exit(0);
+      // eslint-disable-next-line no-fallthrough
       default:
         if (!result.command) {
           result.command = arg;
@@ -185,11 +187,13 @@ function parseArgs(argv: string[]): ParsedArgs {
   return result;
 }
 
-async function ensureLogin(
-  api: MathemApi,
-  username?: string,
-  password?: string,
-): Promise<void> {
+async function ensureLogin(api: MathemApi, username?: string, password?: string): Promise<void> {
+  // Try to reuse a cached session first
+  if (api.loadSession() && (await api.hasValidSession())) {
+    return;
+  }
+  // Stale session on disk — remove it
+  api.clearSession();
   const user = username ?? process.env.MATHEM_USERNAME;
   const pass = password ?? process.env.MATHEM_PASSWORD;
 
@@ -252,9 +256,7 @@ async function main(): Promise<void> {
         }
         const qty = parsed.args[1] ? parseInt(parsed.args[1], 10) : 1;
         await ensureLogin(api, parsed.username, parsed.password);
-        const cart = await api.addToCart([
-          { productId: parseInt(productId, 10), quantity: qty },
-        ]);
+        const cart = await api.addToCart([{ productId: parseInt(productId, 10), quantity: qty }]);
         console.log(`Added ${qty}x product ${productId} to cart.`);
         console.log(formatCart(cart));
         break;

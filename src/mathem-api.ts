@@ -1,13 +1,17 @@
-import type {
-  Cart,
-  LoginResponse,
-  LogoutResponse,
-  MathemConfig,
-  SearchResult,
-} from './types.js';
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+import type { Cart, LoginResponse, LogoutResponse, MathemConfig, SearchResult } from './types.js';
 
 const DEFAULT_BASE_URL = 'https://www.mathem.se/api/v1';
 const USER_AGENT = 'mathem-cli/1.0.0';
+
+function getSessionPath(): string {
+  const dir = join(homedir(), '.mathem-cli');
+  mkdirSync(dir, { recursive: true });
+  return join(dir, 'session.json');
+}
 
 export class MathemApi {
   private baseUrl: string;
@@ -15,6 +19,45 @@ export class MathemApi {
 
   constructor(config?: MathemConfig) {
     this.baseUrl = config?.baseUrl ?? DEFAULT_BASE_URL;
+  }
+
+  /** Persist current cookies to ~/.mathem-cli/session.json */
+  saveSession(): void {
+    const data = Object.fromEntries(this.cookies);
+    writeFileSync(getSessionPath(), JSON.stringify(data), 'utf-8');
+  }
+
+  /** Load cookies from ~/.mathem-cli/session.json. Returns true if a file was loaded. */
+  loadSession(): boolean {
+    try {
+      const raw = readFileSync(getSessionPath(), 'utf-8');
+      const data = JSON.parse(raw) as Record<string, string>;
+      for (const [k, v] of Object.entries(data)) {
+        this.cookies.set(k, v);
+      }
+      return this.cookies.size > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Remove saved session file from disk. */
+  clearSession(): void {
+    try {
+      unlinkSync(getSessionPath());
+    } catch {
+      // ignore if file doesn't exist
+    }
+  }
+
+  /** Check if we have a loaded session that is still valid by calling the cart endpoint. */
+  async hasValidSession(): Promise<boolean> {
+    try {
+      await this.getCart();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private getCookieHeader(): string {
@@ -37,14 +80,11 @@ export class MathemApi {
     return this.cookies.get('csrftoken');
   }
 
-  private async request<T>(
-    path: string,
-    options: RequestInit = {},
-  ): Promise<T> {
+  private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       'User-Agent': USER_AGENT,
-      'Referer': 'https://www.mathem.se/',
+      Referer: 'https://www.mathem.se/',
       ...(options.headers as Record<string, string>),
     };
 
@@ -89,24 +129,26 @@ export class MathemApi {
       await this.init();
     }
 
-    return this.request<LoginResponse>('/user/login/', {
+    const result = await this.request<LoginResponse>('/user/login/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
+
+    // Persist session so subsequent CLI invocations skip login
+    this.saveSession();
+    return result;
   }
 
   async logout(): Promise<LogoutResponse> {
-    return this.request<LogoutResponse>('/user/logout/', {
+    const result = await this.request<LogoutResponse>('/user/logout/', {
       method: 'POST',
     });
+    this.clearSession();
+    return result;
   }
 
-  async search(
-    query: string,
-    page = 1,
-    size = 10,
-  ): Promise<SearchResult> {
+  async search(query: string, page = 1, size = 10): Promise<SearchResult> {
     const params = new URLSearchParams({
       q: query,
       type: 'product',
@@ -126,9 +168,7 @@ export class MathemApi {
     return this.request<Cart>('/cart/?group-by=recipes');
   }
 
-  async addToCart(
-    items: Array<{ productId: number; quantity: number }>,
-  ): Promise<Cart> {
+  async addToCart(items: Array<{ productId: number; quantity: number }>): Promise<Cart> {
     return this.request<Cart>('/cart/items/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -168,9 +208,7 @@ export class MathemApiError extends Error {
     try {
       const parsed = JSON.parse(body);
       if (parsed.errors) {
-        detail = typeof parsed.errors === 'string'
-          ? parsed.errors
-          : JSON.stringify(parsed.errors);
+        detail = typeof parsed.errors === 'string' ? parsed.errors : JSON.stringify(parsed.errors);
       }
     } catch {
       detail = body.substring(0, 200);

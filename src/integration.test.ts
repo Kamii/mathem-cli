@@ -28,10 +28,7 @@ describe.skipIf(!hasCredentials)('Integration: auth + cart', () => {
   const api = new MathemApi();
 
   beforeAll(async () => {
-    await api.login(
-      process.env.MATHEM_USERNAME!,
-      process.env.MATHEM_PASSWORD!,
-    );
+    await api.login(process.env.MATHEM_USERNAME!, process.env.MATHEM_PASSWORD!);
   });
 
   afterAll(async () => {
